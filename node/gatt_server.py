@@ -105,7 +105,7 @@ async def run_server(name: str, advertise_seconds: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Project GATT Peripheral (data plane).")
-    parser.add_argument("--name", default="IOT-Node", help="BLE local name to advertise")
+    parser.add_argument("--name", default="IoT-Node", help="BLE local name to advertise")
     parser.add_argument(
         "--advertise-seconds",
         type=int,
