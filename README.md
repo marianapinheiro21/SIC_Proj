@@ -1,10 +1,9 @@
 # Projeto SIC: Rede Ad-hoc Segura baseada em Bluetooth
 
 ## Identificação do Grupo
-* **Autor 1**: Arthur Melo (102667) - Contribuição: 25%
-* **Autor 2**: [Nome] ([Número]) - Contribuição: 25%
-* **Autor 3**: [Nome] ([Número]) - Contribuição: 25%
-* **Autor 4**: [Nome] ([Número]) - Contribuição: 25%
+* **Autor 1**: Pedro Tavares (120124) - Contribuição: 25%
+* **Autor 2**: Mariana Gomes (73211) - Contribuição: 25%
+
 
 ---
 
