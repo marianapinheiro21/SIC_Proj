@@ -1,40 +1,31 @@
-"""Main entrypoint for an IoT node device.
-
-This file contains a minimal CLI and sensor loop stub. Replace sensor
-logic and transport selection with actual implementations as needed.
-"""
-import argparse
-import logging
+from common.transport import BLETransport
 import time
 
-logger = logging.getLogger(__name__)
 
+def run_node():
+    # Controller 2: 4C:D5:77:E1:37:B2 (index 1)
+    transport = BLETransport(adapter_index=1)
 
-def read_sensor() -> float:
-    """Stub: return a fake sensor reading (float)."""
-    return time.time() % 100  # deterministic-ish placeholder
+    # Varibles not used for now since not making advertisement on the IoT device
+    node_nid = "NODE_0000000002"
+    uplink_device = None
+    hops = -1  # Start with negative hops
 
+    while True:
+        if uplink_device is None or not uplink_device.is_connected():
+            print("Searching for uplink...")
+            target = transport.scan_for_uplink()
 
-def run_node(poll_interval: float = 5.0):
-    logger.info("Starting node with poll interval %.1fs", poll_interval)
-    try:
-        while True:
-            val = read_sensor()
-            logger.info("Sensor read: %s", val)
-            # TODO: build frame via common.protocol and send over transport
-            time.sleep(poll_interval)
-    except KeyboardInterrupt:
-        logger.info("Node stopped by user")
+            if target:
+                print(f"Connecting to {target.identifier()}...")
+                target.connect()
+                uplink_device = target
+                # Set local hops to uplink_hops + 1
+                # (Logic to read manufacturer data and update local state)
+                print("Connection established!")
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Run IoT node")
-    parser.add_argument("--interval", "-i", type=float, default=5.0,
-                        help="Sensor polling interval in seconds")
-    args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
-    run_node(args.interval)
+        time.sleep(5)  # Check link liveness
 
 
 if __name__ == "__main__":
-    main()
+    run_node()

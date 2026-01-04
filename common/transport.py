@@ -1,73 +1,49 @@
-"""Transport wrappers for different link layers.
+# this abstract the use of simpleBLE for the other modules
+import simplepyble
+import struct
 
-This module contains minimal stubs for two transport abstractions used by
-the project: a SimpleBLE wrapper and an L2CAP socket wrapper. Implementations
-are placeholders — replace with actual platform-specific code when available.
-
-Citations: skeleton references for transport [cite: 137].
-"""
-import logging
-import socket
-from typing import Optional
-
-logger = logging.getLogger(__name__)
+# Unique Project UUID to filter other Bluetooth devices
+SERVICE_UUID = "12345678-1234-5678-1234-567812345678"
 
 
-class BaseTransport:
-    """Minimal abstract transport contract.
+class BLETransport:
+    def __init__(self, adapter_index=0):
+        adapters = simplepyble.Adapter.get_adapters()
+        self.adapter = adapters[adapter_index]
+        self.selected_device = None
 
-    Methods:
-        send(bytes) -> int: send bytes, return bytes sent.
-        recv(n) -> bytes: receive up to n bytes.
-    """
+    def start_advertising(self, nid, hops):
+        """
+        The Peripheral (Sink or Node providing downlink) broadcasts its status.
+        Manufacturer data: [NID (16 bytes)][Hops (1 byte signed)]
+        """
+        peripheral = simplepyble.Peripheral(self.adapter)
+        # Convert NID string to bytes and Hops to signed char
+        payload = nid.encode() + struct.pack('b', hops)
 
-    def send(self, data: bytes) -> int:
-        raise NotImplementedError()
+        peripheral.advertise_start(SERVICE_UUID, payload)
+        return peripheral
 
-    def recv(self, n: int = 4096) -> bytes:
-        raise NotImplementedError()
+    def scan_for_uplink(self):
+        """
+        The Central (Node looking for Sink) scans for the lowest hop count.
+        """
+        self.adapter.scan_for(2000)  # Scan for 2 seconds
+        found_devices = self.adapter.scan_get_results()
 
+        best_uplink = None
+        min_hops = float('inf')
 
-class SimpleBLETransport(BaseTransport):
-    """Stub for a BLE-based transport.
+        for device in found_devices:
+            # Check if our Service UUID is present
+            if SERVICE_UUID in device.services():
+                # Extract hops from manufacturer data (last byte)
+                data = device.manufacturer_data()
+                current_hops = struct.unpack('b', data[-1:])[0]
 
-    Real implementations should use a BLE library (e.g., bleak) and handle
-    connection, MTU, fragmentation, pairing, etc. This stub provides the
-    API surface for tests and integration.
-    """
+            # Lazy approach: find the lowest, but don't switch if already connected
+            if 0 <= current_hops < min_hops:
+                min_hops = current_hops
+                best_uplink = device
 
-    def __init__(self, device_addr: Optional[str] = None):
-        self.device_addr = device_addr
-
-    def send(self, data: bytes) -> int:
-        logger.debug("SimpleBLETransport.send: %d bytes", len(data))
-        # Placeholder: pretend all bytes were sent
-        return len(data)
-
-    def recv(self, n: int = 4096) -> bytes:
-        logger.debug("SimpleBLETransport.recv: asked for %d bytes", n)
-        return b""
-
-
-class L2CAPSocketTransport(BaseTransport):
-    """Simple L2CAP socket wrapper (POSIX)."""
-
-    def __init__(self, host: str = "localhost", port: int = 12345):
-        # This is a placeholder; real L2CAP sockets require bluetooth support.
-        self.host = host
-        self.port = port
-        self.sock: Optional[socket.socket] = None
-
-    def connect(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.host, self.port))
-
-    def send(self, data: bytes) -> int:
-        if not self.sock:
-            raise RuntimeError("socket not connected")
-        return self.sock.send(data)
-
-    def recv(self, n: int = 4096) -> bytes:
-        if not self.sock:
-            raise RuntimeError("socket not connected")
-        return self.sock.recv(n)
+        return best_uplink
