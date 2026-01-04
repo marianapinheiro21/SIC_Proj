@@ -3,11 +3,9 @@ from dataclasses import dataclass
 import struct
 from typing import Union
 
-# Custom UUIDs for the project (data plane service)
 SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0'
 CHAR_UUID = '12345678-1234-5678-1234-56789abcdef1'
 
-# Frame types for multiplexing
 FRAME_TYPE_HEARTBEAT = 0x01
 FRAME_TYPE_DATA = 0x02
 FRAME_TYPE_HANDSHAKE_CERT = 0x10
@@ -85,7 +83,6 @@ class Frame:
 
 
 class SeqCounter:
-    # per-link/per-session sequence counter.
     def __init__(self, start: int = 0):
         self._seq = start
 

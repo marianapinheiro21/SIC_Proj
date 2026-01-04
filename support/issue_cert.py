@@ -1,4 +1,3 @@
-# Upon receiving a node name must generate the node_NID.crt and the node_NID.key# Node private key and certificate (signed by our demo CA)
 NODE_KEY = ec.generate_private_key(ec.SECP256R1())
 node_subject = x509.Name([
     x509.NameAttribute(x509.NameOID.COMMON_NAME, f"Node {NODE_ID}")

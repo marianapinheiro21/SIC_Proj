@@ -19,47 +19,30 @@ from common.protocol import SERVICE_UUID, CHAR_UUID
 log = logging.getLogger("gatt_server")
 
 class DataPlaneService(Service):
-    """
-    Single service + single characteristic used as the "data plane":
-      - centrals WRITE frames to this characteristic
-      - server NOTIFY frames back (broadcast to subscribed centrals)
-    """
 
     def __init__(
         self,
         on_rx: Optional[Callable[[bytes], Awaitable[None]]] = None,
     ):
-        # Primary service
         super().__init__(SERVICE_UUID, True)
         self._last_value: bytes = b""
         self._on_rx = on_rx
 
     @characteristic(CHAR_UUID, CharFlags.READ | CharFlags.WRITE | CharFlags.NOTIFY)
     def dataplane(self, options):
-        # READ returns the last notified value (handy for debugging)
         return self._last_value
 
     @dataplane.setter
     def dataplane(self, value: bytes, options):
-        """
-        Called by BlueZ when a central writes to the characteristic.
-        NOTE: this setter is sync; if you need async work, schedule it.
-        """
         self._last_value = bytes(value)
         log.info("RX write (%d bytes): %r", len(self._last_value), self._last_value[:80])
 
-        # Echo back immediately (useful for your first BLE test)
-        # This NOTIFY goes to all subscribed centrals.
         self.dataplane.changed(self._last_value)
 
         if self._on_rx is not None:
-            # Schedule async processing without blocking dbus callbacks
             asyncio.get_event_loop().create_task(self._on_rx(self._last_value))
 
     def notify(self, data: bytes) -> None:
-        """
-        Push a NOTIFY update to subscribed centrals.
-        """
         self._last_value = bytes(data)
         self.dataplane.changed(self._last_value)
 
@@ -70,13 +53,11 @@ async def run_server(name: str, advertise_seconds: int) -> None:
     service = DataPlaneService()
     await service.register(bus)
 
-    # Agent required for pairing flows (even if you don't pair right now)
     agent = NoIoAgent()
     await agent.register(bus)
 
     adapter = await Adapter.get_first(bus)
 
-    # Advertise your service UUID so clients can filter by it
     advert = Advertisement(name, [SERVICE_UUID], 0x0000, advertise_seconds)
     
     #advert = Advertisement( local_name=name, 
@@ -93,10 +74,8 @@ async def run_server(name: str, advertise_seconds: int) -> None:
 
     try:
         while True:
-            # IMPORTANT: yield to asyncio so notifications work properly
             await asyncio.sleep(1)
     finally:
-        # Best-effort cleanup
         try:
             await advert.unregister()
         except Exception:
@@ -117,10 +96,6 @@ def main() -> None:
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO))
 
-    # bluez-peripheral docs note you may need:
-    # - to be root for agent/advert registration, OR
-    # - to be in bluetooth group + proper dbus permissions
-    #asyncio.run(run_server(args.name, args.advertise_seconds))
     
     try:
         asyncio.run(run_server(args.name, args.advertise_seconds))

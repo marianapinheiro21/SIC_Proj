@@ -1,4 +1,3 @@
-# node/gatt_client_test.py
 from __future__ import annotations
 
 import argparse
@@ -27,7 +26,6 @@ async def find_device(name: Optional[str], address: Optional[str], timeout: floa
     def matcher(d, ad):
         if name and (d.name != name):
             return False
-        # Many devices advertise service UUIDs; Bleak exposes them via ad.service_uuids
         suuids = (ad.service_uuids or [])
         return SERVICE_UUID.lower() in [s.lower() for s in suuids]
 
@@ -40,7 +38,7 @@ async def find_device(name: Optional[str], address: Optional[str], timeout: floa
 async def main_async(name: Optional[str], address: Optional[str], msg: str):
     addr = await find_device(name, address)
     if not addr:
-        raise SystemExit("Device not found. Provide --address or check that server is advertising SERVICE_UUID.")
+        raise SystemExit("Device not found")
 
     log.info("Connecting to %s ...", addr)
     async with BleakClient(addr) as client:
@@ -49,10 +47,9 @@ async def main_async(name: Optional[str], address: Optional[str], msg: str):
 
         payload = msg.encode("utf-8")
         log.info("WRITE %d bytes to %s: %r", len(payload), CHAR_UUID, payload)
-        # response=False is fine for most notify-based patterns
+
         await client.write_gatt_char(CHAR_UUID, payload, response=False)
 
-        # Wait to receive the echo notify
         await asyncio.sleep(2)
 
         log.info("Done. (Ctrl+C to exit earlier)")

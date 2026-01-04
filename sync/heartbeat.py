@@ -1,9 +1,3 @@
-"""Heartbeat broadcaster for the Sink.
-
-This module implements a simple asyncio-based periodic broadcast that
-would emit a heartbeat every 5 seconds. Replace the broadcast logic with the
-actual network transport used by your deployment.
-"""
 import asyncio
 import logging
 

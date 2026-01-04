@@ -1,7 +1,6 @@
 #this file is suppose to act as the CA tool for generating the CA.pem
-NODE_ID = secrets.token_hex(4)  # Placeholder, replace with cert-based NID
+NODE_ID = secrets.token_hex(4)  
 
-# Generate a demo self-signed CA (for testing only - no real trust)
 ca_key = ec.generate_private_key(ec.SECP256R1())
 ca_subject = x509.Name([
     x509.NameAttribute(x509.NameOID.COMMON_NAME, "Demo Project CA"),
